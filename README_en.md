@@ -1,50 +1,32 @@
-# Codex PPT Skill
+# dLazy PPT Skill
 
 [简体中文](README.md) · **English** · [한국어](README_ko.md)
 
-[![Docs](https://img.shields.io/badge/Docs-Guide-111827)](https://ningzimu.github.io/codex-ppt-skill/#/en/) [![Support](https://img.shields.io/badge/Support-Get_Help-2CA5E0)](https://t.me/CodexPPT) [![ClawHub](https://img.shields.io/badge/ClawHub-codex--ppt-cd3b35)](https://clawhub.ai/ningzimu/codex-ppt) [![ClawMama](https://img.shields.io/badge/ClawMama-codex--ppt-2CA5E0)](https://app.clawmama.run/skills/5lak48/hermes?utm_source=github&utm_medium=issue&utm_campaign=skill_outreach_ningzimu_codex_ppt_skill) [![GitHub stars](https://img.shields.io/github/stars/ningzimu/codex-ppt-skill?style=flat&logo=github&label=stars)](https://github.com/ningzimu/codex-ppt-skill/stargazers) [![GitHub forks](https://img.shields.io/github/forks/ningzimu/codex-ppt-skill?style=flat&logo=github&label=forks)](https://github.com/ningzimu/codex-ppt-skill/forks)
+[![Docs](https://img.shields.io/badge/Docs-Guide-111827)](https://dlazyai.github.io/ai-ppt-slides/#/en/) [![ClawHub](https://img.shields.io/badge/ClawHub-dlazy--ppt-cd3b35)](https://clawhub.ai/dlazyai/dlazy-ppt) [![GitHub stars](https://img.shields.io/github/stars/dlazyai/ai-ppt-slides?style=flat&logo=github&label=stars)](https://github.com/dlazyai/ai-ppt-slides/stargazers) [![GitHub forks](https://img.shields.io/github/forks/dlazyai/ai-ppt-slides?style=flat&logo=github&label=forks)](https://github.com/dlazyai/ai-ppt-slides/forks)
 
-A Codex skill for generating PowerPoint decks. It can also be used in Claude Code, OpenClaw, Hermes Agent, and other agents that support `SKILL.md`; these non-Codex environments usually require configuring `gpt-image-2`, a third-party image API, or an OpenAI-compatible image generation endpoint. It turns articles, reports, papers, course notes, and other source materials into image-based presentations: first plan the outline and visual style, then generate each full-slide image, and finally assemble the images into a `.pptx` file with a local script.
-
-## Sponsor
-
-<table>
-<tr>
-<td width="180"><img src="assets/atlas-cloud-logo.png" alt="Atlas Cloud" width="160"></td>
-<td>Thanks to <a href="https://www.atlascloud.ai/?utm_source=github&utm_medium=link&utm_campaign=codex-ppt-skill">Atlas Cloud</a> for sponsoring this project. AtlasCloud is a multimodal AI inference platform that provides one API for image generation, video generation, LLMs, and more. This skill can use the existing API key, base URL, and model-name configuration to call AtlasCloud's GPT Image 2 generation and editing endpoints, with pay-as-you-go pricing and out-of-the-box setup. See the full model list on the <a href="https://www.atlascloud.ai/zh/models">Atlas Cloud models page</a>.</td>
-</tr>
-</table>
+A PPT generation skill whose slide images all come from [dLazy](https://dlazy.com). It runs in Codex, Claude Code, OpenClaw, Hermes Agent, and other agents that support `SKILL.md`, and needs only a dLazy API key: no OpenAI account and no third-party image provider to set up. It turns articles, reports, papers, course notes, and other source materials into image-based presentations: first plan the outline and visual style, then generate each full-slide image, and finally assemble the images into a `.pptx` file with a local script.
 
 ## Friendly Note
 
 > [!TIP]
-> This skill generates image-based PPT decks from articles, reports, outlines, or ideas. It is suitable for strong visual expression, but slide elements are not directly editable. If you need a more editable PPT, you can try converting the generated deck with [image-to-editable-ppt-skill](https://github.com/ningzimu/image-to-editable-ppt-skill).
->
-> For a detailed introduction to `codex-ppt` and `image-to-editable-ppt`, see [skill_duo_intro.pdf](assets/skill_duo_intro.pdf). This deck was generated with the `codex-ppt` skill using the prompt: "请分别阅读 Codex PPT和 Image to Editable PPT 这两个技能的内容，然后用 Codex PPT 帮我做一个PPT吧，20页，每个技能的介绍10页。"
->
-> For more practical notes on designing and tuning this PPT skill, see the Chinese article [2000 个 GitHub Star 换来的经验：好的 AI Skill 是调出来的，不是写出来的](https://mp.weixin.qq.com/s/LaxWBX-nogHPpSxlk-Vs8Q).
+> This skill generates image-based PPT decks from articles, reports, outlines, or ideas. It is suitable for strong visual expression, but slide elements are not directly editable. If every textbox and chart must stay separately editable, this skill is not the right tool.
 
-> [!NOTE]
-> To see more PPT examples made by users with this skill, visit the pinned showcase issue: [欢迎分享 codex-ppt 使用案例和 PPT 效果](https://github.com/ningzimu/codex-ppt-skill/issues/34).
+Every generated slide spends dLazy credits. The default is 2K 16:9 at `medium` quality; 4K or `high` quality costs noticeably more per page. Confirm the style on a sample slide before generating a full deck.
 
-This skill is meant to provide a solid PPT generation workflow. To stay broadly useful, the workflow is a little more complex than most people need every day, and that complexity can sometimes add instability or redundant choices. For example, it supports both Codex built-in image generation and API/CLI fallback generation, and it also supports workflows with or without subagents. Most users will eventually use only one of those paths.
-
-After you have a route working, consider asking an AI assistant to edit this skill and lock in your own preferences, such as your preferred image backend, whether to use subagents, output directory conventions, visual styles, or slide pacing. That way you do not need to make the same choices every time.
-
-If you find a layout or visual style you like while making decks, whether it was generated by this skill or found elsewhere, you can ask AI to save it into your personal style library at `~/.codex-ppt-skill/references/` and gradually build your own collection. The personal style library lives outside the skill install directory, so updating or reinstalling the skill never loses it. Skills are highly personal workflows; tune this one around your own habits so it becomes more useful for your actual work.
+If you find a layout or visual style you like while making decks, whether it was generated by this skill or found elsewhere, you can ask AI to save it into your personal style library at `~/.dlazy-ppt/references/` and gradually build your own collection. The personal style library lives outside the skill install directory, so updating or reinstalling the skill never loses it. Skills are highly personal workflows; tune this one around your own habits so it becomes more useful for your actual work.
 
 For a basic introduction to skill design and usage, see [good-skill-design.pptx](assets/good-skill-design.pptx). That deck was also made with this skill, using the hand-drawn technical explainer style, and is based on Claude's skill design best-practices article [The Complete Guide to Building Skills for Claude](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf).
 
 ## Features
 
-- Works across multiple agents: supports Codex, Claude Code, OpenClaw, Hermes Agent, and other `SKILL.md`-based environments; Codex is the recommended environment because it can use the built-in image generation and image editing tools first.
-- Supports third-party image providers: works with OpenAI-compatible endpoints, AtlasCloud, `base URL`, and custom model names, so API/CLI fallback can use `gpt-image-2` or compatible image models.
-- Stable staged workflow: confirms the outline, slide count, visual style, image backend, and sample slide before full-deck generation, reducing drift and rework when generating a complete PPT.
+- Works across multiple agents: supports Codex, Claude Code, OpenClaw, Hermes Agent, and other `SKILL.md`-based environments, and behaves identically in each.
+- One key to configure: every image goes through dLazy's `gpt-image-2`. Set `DLAZY_API_KEY` once, with no base URL or model name to juggle and no separate image account per agent.
+- Stable staged workflow: confirms the outline, slide count, visual style, and sample slide before full-deck generation, reducing drift and rework when generating a complete PPT.
 - Guided instead of one-shot: the skill asks you to confirm `outline.md`, per-slide key points, style direction, and sample-slide quality before continuing.
 - Low setup effort: articles, reports, papers, course notes, Markdown files, outlines, PDFs, and Word documents can all be used as starting material.
 - 12 built-in PPT style references: includes clean professional, scientific defense, Party-and-Government Red, Teaching Courseware, e-ink magazine, hand-drawn technical explainer, dashboard, McKinsey style, and more. The hand-drawn technical explainer style is a strong starting point if you do not want to write prompts.
 - Supports custom style replication: provide a favorite image, PDF, or PPT/PPTX, and the agent can analyze its color, layout, typography, and visual system before generating a new deck in that style.
-- Builds a reusable personal style library: once you like a deck style, ask the agent to save it into `~/.codex-ppt-skill/references/` so future decks can reuse it directly; the library lives outside the skill install, survives skill updates, and a personal style with the same name takes priority over the built-in one.
+- Builds a reusable personal style library: once you like a deck style, ask the agent to save it into `~/.dlazy-ppt/references/` so future decks can reuse it directly; the library lives outside the skill install, survives skill updates, and a personal style with the same name takes priority over the built-in one.
 - Supports parallel subagent generation: after the sample slide is approved, one subagent can handle one slide and self-check readability, style consistency, and content completeness before reporting issues for repair.
 - Supports required image insertion: assign paper figures, experiment charts, screenshots, architecture diagrams, or other images to specific slides, and the generated page will adapt the layout and theme around them.
 - Generates speaker notes: creates `speech.md` and writes the notes into each slide during PPTX assembly, making the deck easier to present or revise.
@@ -112,7 +94,7 @@ Use `origin_image/` to review the final image used for each slide. Files are nam
 Recommended: send this sentence to your agent and let it install the skill for you:
 
 ```text
-Please install this codex-ppt skill for me: https://github.com/ningzimu/codex-ppt-skill
+Please install this dlazy-ppt skill for me: https://github.com/dlazyai/ai-ppt-slides
 ```
 
 ### Manual install for Codex
@@ -120,21 +102,21 @@ Please install this codex-ppt skill for me: https://github.com/ningzimu/codex-pp
 To install manually for Codex, use the `skills` CLI to add this skill to Codex's global skills directory:
 
 ```bash
-npx -y skills@latest add ningzimu/codex-ppt-skill \
-  --skill codex-ppt \
+npx -y skills@latest add dlazyai/ai-ppt-slides \
+  --skill dlazy-ppt \
   --agent codex \
   --global
 ```
 
 Restart Codex after installation so the new skill is picked up.
 
-You can also download `codex-ppt-skill-v*.zip` from GitHub Releases, unzip it, place the contained `codex-ppt` directory at `~/.codex/skills/codex-ppt`, and then restart Codex.
+You can also download `ai-ppt-slides-v*.zip` from GitHub Releases, unzip it, place the contained `dlazy-ppt` directory at `~/.codex/skills/dlazy-ppt`, and then restart Codex.
 
 If you are developing this repository locally, you can instead symlink the skill directory into the Codex skills directory so changes are reflected immediately:
 
 ```bash
 mkdir -p ~/.codex/skills
-ln -s /path/to/codex-ppt-skill/skills/codex-ppt ~/.codex/skills/codex-ppt
+ln -s /path/to/ai-ppt-slides/skills/dlazy-ppt ~/.codex/skills/dlazy-ppt
 ```
 
 ### OpenClaw
@@ -142,12 +124,12 @@ ln -s /path/to/codex-ppt-skill/skills/codex-ppt ~/.codex/skills/codex-ppt
 Install from ClawHub:
 
 ```bash
-openclaw skills install codex-ppt
+openclaw skills install dlazy-ppt
 ```
 
-ClawHub page: [clawhub.ai/ningzimu/codex-ppt](https://clawhub.ai/ningzimu/codex-ppt)
+ClawHub page: [clawhub.ai/dlazyai/dlazy-ppt](https://clawhub.ai/dlazyai/dlazy-ppt)
 
-If you use OpenClaw skill allowlists, add `codex-ppt` to the allowed skills.
+If you use OpenClaw skill allowlists, add `dlazy-ppt` to the allowed skills.
 
 ### Claude Code and Hermes Agent
 
@@ -155,19 +137,19 @@ These agents can read `SKILL.md` skills. You can also install with the `skills` 
 
 ```bash
 # Claude Code
-npx -y skills@latest add ningzimu/codex-ppt-skill \
-  --skill codex-ppt \
+npx -y skills@latest add dlazyai/ai-ppt-slides \
+  --skill dlazy-ppt \
   --agent claude-code \
   --global
 
 # Hermes Agent
-npx -y skills@latest add ningzimu/codex-ppt-skill \
-  --skill codex-ppt \
+npx -y skills@latest add dlazyai/ai-ppt-slides \
+  --skill dlazy-ppt \
   --agent hermes-agent \
   --global
 ```
 
-Common target directories are `~/.claude/skills/codex-ppt` for Claude Code and `~/.hermes/skills/codex-ppt` for Hermes Agent.
+Common target directories are `~/.claude/skills/dlazy-ppt` for Claude Code and `~/.hermes/skills/dlazy-ppt` for Hermes Agent.
 
 If you are developing this repository locally, you can use a symlink instead of copying so changes are reflected immediately.
 
@@ -176,27 +158,40 @@ If you are developing this repository locally, you can use a symlink instead of 
 Re-run the matching install command above to overwrite the installed skill with the latest version, or simply ask your agent to update it:
 
 ```text
-Please update the codex-ppt skill to the latest version. The repository is: https://github.com/ningzimu/codex-ppt-skill
+Please update the dlazy-ppt skill to the latest version. The repository is: https://github.com/dlazyai/ai-ppt-slides
 ```
 
-Restart the agent after updating. Your API key configuration (`~/.codex-ppt-skill/.env`) and personal style library (`~/.codex-ppt-skill/references/`) live outside the skill install directory, so updates and reinstalls never lose them.
+Restart the agent after updating. Your API key configuration (`~/.dlazy-ppt/.env`) and personal style library (`~/.dlazy-ppt/references/`) live outside the skill install directory, so updates and reinstalls never lose them.
 
-## Image Model Configuration
+## Configuring The dLazy API Key
 
-> [!TIP]
-> You can start using Codex PPT normally to make a deck. In most cases, you do not need to configure the image model by hand; when the workflow asks you to choose an image backend, the AI will check the current environment and guide you through any required information.
->
-> - If you use Codex's built-in image generation, you usually do not need an extra API key.
-> - If you have confirmed that a third-party provider or OpenAI-compatible proxy is needed, ask the AI to read the [image model configuration guide](skills/codex-ppt/docs/image-model-configuration.md) before configuring API key, base URL, and model name.
+Image generation needs a dLazy API key. Configure it once and every agent shares it:
 
-Asking for a specific resolution, higher quality, or edits to one slide does not by itself trigger third-party API configuration. If you use Codex through a GPT subscription and Codex's built-in image generation tool is available, you can usually keep using the built-in image tool and do not need to prepare an API key.
+1. Sign in at [dlazy.com](https://dlazy.com) and copy your key from the [API key page](https://dlazy.com/dashboard/organization/api-key).
+2. Run:
+
+```bash
+python3 skills/dlazy-ppt/scripts/dlazy_ppt_runtime.py config --api-key "your-dlazy-api-key"
+```
+
+You can also just hand the key to your agent and ask it to save it.
+
+The config is written to `~/.dlazy-ppt/.env` with mode `0600`. Codex, Claude Code, OpenClaw, and Hermes Agent all read that one file, and updating or reinstalling the skill never loses it.
+
+Verify it works:
+
+```bash
+python3 skills/dlazy-ppt/scripts/dlazy_ppt_runtime.py doctor --check-api
+```
+
+For details such as a self-hosted base URL or a different dLazy image tool, see the [image model configuration guide](skills/dlazy-ppt/docs/image-model-configuration.md).
 
 ## Usage
 
-Ask Codex, Claude Code, OpenClaw, or Hermes Agent and explicitly specify the `codex-ppt` skill, for example:
+Ask Codex, Claude Code, OpenClaw, or Hermes Agent and explicitly specify the `dlazy-ppt` skill, for example:
 
 ```text
-Use the codex-ppt skill to turn /path/to/article.md into a roughly 10-slide PPT.
+Use the dlazy-ppt skill to turn /path/to/article.md into a roughly 10-slide PPT.
 ```
 
 The skill follows this workflow:
@@ -204,10 +199,10 @@ The skill follows this workflow:
 1. Read the source content and plan the deck outline.
 2. Generate `outline.md` and ask you to confirm slide count, slide titles, and key points.
 3. Offer 2-3 visual style options and recommend one for user confirmation.
-4. State the image generation backend before the first image and ask you to confirm it.
-5. Generate one sample slide with the confirmed image backend for approval of style, layout rhythm, and text quality.
+4. Check that the dLazy runtime is configured.
+5. Generate one sample slide for approval of style, layout rhythm, and text quality.
 6. Create the PPT project directory.
-7. Generate all slide images one by one with the same image backend.
+7. Generate all slide images one by one.
 8. Check text readability, style consistency, and content completeness.
 9. Generate `speech.md`.
 10. Assemble the `.pptx` with `assemble_ppt.py`.
@@ -215,26 +210,17 @@ The skill follows this workflow:
 
 ## Usage Tips
 
-- Codex subscribers use the built-in image generation tool by default; its output resolution is relatively low, and it does not currently expose a manual resolution setting. If you need higher-resolution images, switch to generating via the `gpt-image-2` API (the API/CLI fallback path, configured with an API key, base URL, and model name). In the API/CLI fallback path, the default script resolution is 2K 16:9 landscape; if slide images still look blurry, especially on text-heavy pages, ask the AI to switch to 4K.
+- The default resolution is 2K 16:9 landscape (`2048x1152`). If slide images look blurry, especially on text-heavy pages, ask the AI to regenerate at 4K (`3840x2160`) with `high` quality — sharper, but noticeably more credits per page. Sizes are a fixed list, and `2048x1152` and `3840x2160` are the only two 16:9 options.
 - If you are unhappy with one specific slide's content, layout, colors, or wording, ask the current agent to refine that slide in detail instead of regenerating the whole deck.
 
 ![Single-slide revision example: open the PPT, click annotation, and mark the area to revise](assets/single-slide-revision-example.png)
 
-- You can also provide PPT style references you like — a single screenshot, multiple screenshots, or a full PPT/PDF. Ask the current agent to analyze the colors, layout, typography, and visual elements first, then generate a new deck in that style. Once the result looks good, you can ask the agent to save the style into your personal style library at `~/.codex-ppt-skill/references/` for future reuse; it will not be lost when the skill is updated.
+- You can also provide PPT style references you like — a single screenshot, multiple screenshots, or a full PPT/PDF. Ask the current agent to analyze the colors, layout, typography, and visual elements first, then generate a new deck in that style. Once the result looks good, you can ask the agent to save the style into your personal style library at `~/.dlazy-ppt/references/` for future reuse; it will not be lost when the skill is updated.
 - If you need to include paper figures, experiment charts, screenshots, or architecture diagrams, specify the target slide and role for each image in the outline.
-
-## More Projects
-
-- [image-to-editable-ppt-skill](https://github.com/ningzimu/image-to-editable-ppt-skill): Rebuild slide screenshots, PDF pages, or image-based PPTX files into editable PowerPoint decks, useful after `codex-ppt` generates image-based slides.
-- [codex-gpt-image](https://github.com/ningzimu/codex-gpt-image): A `gpt-image-2` image generation skill powered by Codex OAuth / member login.
-- [handdrawn-tech-illustrations](https://github.com/ningzimu/handdrawn-tech-illustrations): A hand-drawn illustration skill for Chinese technical content. It turns technical articles, product notes, screenshots, outlines, or rough ideas into article illustrations, concept explainer graphics, WeChat cover images, and Rednote covers, with a friendly, light-cartoon, Chinese-readable style and moderate information density.
-- [awesome-ai-ppt](https://github.com/ningzimu/awesome-ai-ppt): A curated list of open-source AI PPT projects, organized by workflows such as HTML-first, image-first, PPTX-native, conversion, and automation infrastructure, focused on GitHub projects that help agents or developers create, edit, convert, or inspect PPT decks.
-- [awesome-skills](https://github.com/ningzimu/awesome-skills): A curated list of practical AI Agent Skills and related tools. Install one entry point, and your agent can consult the continuously updated list to select, install, and use the right skill for each task.
-- [claude-code-lens](https://github.com/ningzimu/claude-code-lens): A local observability tool for Claude Code API traffic, logs, prompts, and tool calls, useful for understanding what an agent is actually doing.
 
 ## Support
 
-Having trouble? Check the [usage documentation](https://ningzimu.github.io/codex-ppt-skill/#/en/), join [CodexPPT](https://t.me/CodexPPT), or [open an issue](https://github.com/ningzimu/codex-ppt-skill/issues/new).
+Having trouble? Check the [usage documentation](https://dlazyai.github.io/ai-ppt-slides/#/en/) or [open an issue](https://github.com/dlazyai/ai-ppt-slides/issues/new).
 
 ## License
 
@@ -242,4 +228,4 @@ MIT
 
 ## Acknowledgements
 
-Thanks to the [LinuxDO](https://linux.do) community for its support.
+This project is adapted from [ningzimu/codex-ppt-skill](https://github.com/ningzimu/codex-ppt-skill), with the image pipeline moved to dLazy and the multi-backend selection removed. Thanks to the original author, and to the [LinuxDO](https://linux.do) community for its support.

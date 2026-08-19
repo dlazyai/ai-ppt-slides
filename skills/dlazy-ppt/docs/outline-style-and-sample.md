@@ -19,7 +19,7 @@ Save the draft to `{base_dir}/{deck_name}/outline.md` once the project directory
 
 Show the outline to the user for confirmation and wait for approval before moving to visual style selection or image generation, unless the user explicitly asked you to skip confirmation. If any slide lists required source images, explicitly ask the user to verify that each image is assigned to the correct slide and role before generation. If the user requests changes, update `outline.md` and ask for confirmation again.
 
-Stop after writing the outline draft. At this point, report the `outline.md` path, slide count, required source images and their slide mapping, and that no slide images or PPTX have been generated yet. Do not proceed to `deck_spec.json`, `speech.md`, prompt preparation, style selection, backend selection, or sample generation until the user approves the outline.
+Stop after writing the outline draft. At this point, report the `outline.md` path, slide count, required source images and their slide mapping, and that no slide images or PPTX have been generated yet. Do not proceed to `deck_spec.json`, `speech.md`, prompt preparation, style selection, or sample generation until the user approves the outline.
 
 If the user approved a sample slide, record that approved `slide_XX.png` path as the deck-level style reference. Later slide prompts and subagent handoffs should include it as a style-only reference so each page keeps the same palette, typography mood, density, texture, and visual identity without copying the sample's exact layout.
 
@@ -53,7 +53,7 @@ Use Markdown image syntax inside the `Required images` list whenever the asset i
 
 Before generating slide images, discuss the visual style with the user unless the user has already provided a clear style direction or reference material.
 
-If the user has already specified a style, provided a style image, or provided a PDF/PPT/PPTX to use as style reference, do not force a 2-3 option style selection. Extract the usable style rules, briefly restate them, then proceed to backend confirmation and sample generation.
+If the user has already specified a style, provided a style image, or provided a PDF/PPT/PPTX to use as style reference, do not force a 2-3 option style selection. Extract the usable style rules, briefly restate them, then proceed to sample generation.
 
 For PDF/PPT/PPTX style references, do not infer the visual system from document structure, outline text, XML, file metadata, or slide object hierarchy alone. First render or export representative pages/slides into real page images, inspect those rendered images, and derive the style from what is actually visible on the pages. If the file has multiple visual sections, inspect enough representative pages to capture the shared style and any section-specific variations.
 
@@ -73,7 +73,7 @@ After the user chooses a style, create one final style direction and keep the vi
 Reusable style references come from two locations:
 
 - Built-in styles: the skill's `references/` directory, listed below. They ship with the skill and update with it.
-- User custom styles: `${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/*.md`. They live outside the skill install so they survive skill updates and reinstalls.
+- User custom styles: `${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/*.md`. They live outside the skill install so they survive skill updates and reinstalls.
 
 Before offering or using reusable styles, list the user custom style directory (if it exists) and merge its `*.md` files with the built-in list below. User custom styles are discovered by scanning that directory; they are never registered in this document. If a user custom style has the same filename as a built-in style, the user custom file takes priority and replaces the built-in one.
 
@@ -96,7 +96,7 @@ Available built-in references:
 - `references/党政红风格.md`
 - `references/教学课件风.md`
 
-This list only tracks built-in styles shipped with the skill. Do not add user custom styles here; they are saved to `${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/` via `docs/style-library.md` and discovered by directory scan, so they need no registration.
+This list only tracks built-in styles shipped with the skill. Do not add user custom styles here; they are saved to `${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/` via `docs/style-library.md` and discovered by directory scan, so they need no registration.
 
 Example style confirmation:
 
@@ -112,14 +112,14 @@ C. 数据仪表盘风：指标卡、图表感布局，适合数据密集型报�
 
 ## Generate One Sample Slide For Approval
 
-After the outline, style, and image backend are confirmed, generate exactly one sample slide image before full production.
+After the outline and style are confirmed, generate exactly one sample slide image before full production.
 
 Sample slide requirements:
 
 - Use the confirmed style description.
 - Prefer a representative content slide over the cover when possible.
 - Demonstrate the intended deck rhythm: the sample should show how the chosen style adapts to a real content page, not just a generic fixed template.
-- Save it directly as the intended final slide filename, such as `{base_dir}/{deck_name}/origin_image/slide_08.png`. In CLI/API fallback mode, use `scripts/image_gen.py generate --out` for that exact path.
+- Save it directly as the intended final slide filename, such as `{base_dir}/{deck_name}/origin_image/slide_08.png`. Use `scripts/image_gen.py generate --out` for that exact path.
 - Show the sample image to the user.
 - Ask the user to confirm the visual style, typography, layout density, and Chinese text quality.
 
@@ -127,11 +127,11 @@ Do not generate the full deck until the user approves the sample slide. If the u
 
 After the sample slide is approved, record the sample generation method in `deck_spec.json` before preparing full-deck jobs. This is the contract the parent passes to subagents so they use the same image-generation path as the sample, not a cheaper local rendering path. Include at least:
 
-- `backend_used`: the confirmed backend label, such as `built-in image tool` or `scripts/image_gen.py`.
+- `backend_used`: `scripts/image_gen.py`.
 - `tool_name`: the actual tool or command used, such as `image_gen`, `image_generate`, or `scripts/image_gen.py`.
 - `mode`: `generate` or `edit`.
 - `prompt_source`: where the approved sample prompt came from.
-- `size`, `quality`, and model/config details when the backend exposes them.
+- `size`, `quality`, and the model used.
 - `approved_sample_path`: the approved `origin_image/slide_XX.png` path.
-- `input_context_preparation`: how local source/style images were made available, such as `view_image` for built-in mode.
-- `handoff_rule`: subagents must use the same backend/tool/mode and return a blocker if that path is unavailable.
+- `input_context_preparation`: how local source/style images were attached, such as `edit --image` for each required asset.
+- `handoff_rule`: subagents must use the same command shape and return a blocker if it is unavailable.

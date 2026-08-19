@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
-"""Fallback CLI for codex-ppt image generation or editing with GPT Image models.
+"""CLI for dlazy-ppt slide image generation and editing via the dLazy tool API.
 
-Used when Codex's built-in image tool is unavailable, when the user explicitly
-opts into API mode, or when explicit transparent output requires the
-`gpt-image-1.5` fallback path.
+Every slide image this skill produces goes through here. Generation runs on
+dLazy's hosted `gpt-image-2`; the skill talks to the tool API over HTTP with a
+dLazy API key and never calls a model provider directly.
 
-Defaults to gpt-image-2 and a structured prompt augmentation workflow.
-Reads OPENAI_API_KEY, and optionally OPENAI_BASE_URL for provider adapters or
-OpenAI-compatible proxy providers.
+Reads DLAZY_API_KEY, and optionally DLAZY_BASE_URL for self-hosted deployments
+and DLAZY_PPT_IMAGE_MODEL to pin a different dLazy image tool.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
 from io import BytesIO
 import json
 import os
@@ -23,35 +21,46 @@ import re
 import sys
 import time
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-from urllib.parse import urlparse
 
-from image_providers import create_image_provider
-from image_providers.atlascloud import atlascloud_model_for_operation
+import dlazy_client
 
 DEFAULT_MODEL = "gpt-image-2"
-DEFAULT_SIZE = "2560x1440"
+# 16:9 at the largest size the tool offers below 4K. Slides are always 16:9, and
+# the deck is assembled at this resolution, so a non-16:9 default would letterbox
+# every page.
+DEFAULT_SIZE = "2048x1152"
 DEFAULT_QUALITY = "medium"
 DEFAULT_OUTPUT_FORMAT = "png"
 DEFAULT_CONCURRENCY = 5
 DEFAULT_DOWNSCALE_SUFFIX = "-web"
 DEFAULT_OUTPUT_PATH = "output/imagegen/output.png"
-GPT_IMAGE_MODEL_PREFIX = "gpt-image-"
 
-ALLOWED_LEGACY_SIZES = {"1024x1024", "1536x1024", "1024x1536", "auto"}
-ALLOWED_QUALITIES = {"low", "medium", "high", "auto"}
-ALLOWED_BACKGROUNDS = {"transparent", "opaque", "auto", None}
-ALLOWED_INPUT_FIDELITIES = {"low", "high", None}
+# Mirrors the tool's declared input schema. The API rejects anything else with a
+# 400, so reject it locally where the message can name the allowed values.
+ALLOWED_SIZES = {
+    "1024x1024",
+    "1536x1024",
+    "1024x1536",
+    "2048x2048",
+    "2048x1152",
+    "3840x2160",
+    "2160x3840",
+    "auto",
+}
+SIZES_16_9 = ("2048x1152", "3840x2160")
+ALLOWED_QUALITIES = {"low", "medium", "high"}
+ALLOWED_FORMATS = {"png", "jpeg", "webp"}
 
-GPT_IMAGE_2_MODEL = "gpt-image-2"
-GPT_IMAGE_2_MIN_PIXELS = 655_360
-GPT_IMAGE_2_MAX_PIXELS = 8_294_400
-GPT_IMAGE_2_MAX_EDGE = 3840
-GPT_IMAGE_2_MAX_RATIO = 3.0
+# The tool caps `prompt` at 2000 characters and rejects the whole call when it is
+# exceeded. Slide prompts carry style plus content and get close, so this is
+# checked before spending a call.
+MAX_PROMPT_CHARS = 2000
+MAX_INPUT_IMAGES = 5
 
 MAX_IMAGE_BYTES = 50 * 1024 * 1024
 MAX_BATCH_JOBS = 500
-DEFAULT_RUNTIME_HOME = "~/.codex-ppt-skill"
-ENV_FIELDS = ("OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_PPT_IMAGE_MODEL")
+DEFAULT_RUNTIME_HOME = "~/.dlazy-ppt"
+ENV_FIELDS = ("DLAZY_API_KEY", "DLAZY_BASE_URL", "DLAZY_PPT_IMAGE_MODEL")
 
 
 def _die(message: str, code: int = 1) -> None:
@@ -64,7 +73,7 @@ def _warn(message: str) -> None:
 
 
 def _runtime_home() -> Path:
-    return Path(os.getenv("CODEX_PPT_HOME", DEFAULT_RUNTIME_HOME)).expanduser()
+    return Path(os.getenv("DLAZY_PPT_HOME", DEFAULT_RUNTIME_HOME)).expanduser()
 
 
 def _runtime_env_path() -> Path:
@@ -88,42 +97,11 @@ def _load_runtime_env() -> None:
 
 
 def _default_model() -> str:
-    return os.getenv("CODEX_PPT_IMAGE_MODEL", DEFAULT_MODEL)
-
-
-def _api_base_url() -> Optional[str]:
-    return os.getenv("OPENAI_BASE_URL") or None
+    return os.getenv("DLAZY_PPT_IMAGE_MODEL", DEFAULT_MODEL)
 
 
 def _api_target_label() -> str:
-    base_url = _api_base_url()
-    if base_url:
-        if _is_atlascloud_base_url(base_url):
-            return f"AtlasCloud provider adapter (OPENAI_BASE_URL={base_url})"
-        return f"third-party image API or OpenAI-compatible proxy (OPENAI_BASE_URL={base_url})"
-    return "official OpenAI API (OPENAI_BASE_URL unset)"
-
-
-def _is_atlascloud_base_url(base_url: str) -> bool:
-    hostname = urlparse(base_url).hostname or ""
-    return "atlascloud.ai" in hostname.lower()
-
-
-def _preview_endpoint(kind: str) -> str:
-    base_url = _api_base_url()
-    if base_url and _is_atlascloud_base_url(base_url):
-        return "/api/v1/model/generateImage"
-    if kind == "edit":
-        return "/v1/images/edits"
-    return "/v1/images/generations"
-
-
-def _preview_model(model: str, kind: str) -> str:
-    base_url = _api_base_url()
-    if base_url and _is_atlascloud_base_url(base_url):
-        operation = "edit" if kind == "edit" else "text-to-image"
-        return atlascloud_model_for_operation(model, operation)
-    return model
+    return f"dLazy tool API ({dlazy_client.base_url()})"
 
 
 def _runtime_python_path() -> str:
@@ -142,39 +120,26 @@ def _dependency_hint(package: str, *, upgrade: bool = False) -> str:
     runtime_python = _runtime_python_path()
     requirements = _skill_root() / "requirements.txt"
     return (
-        "Install codex-ppt dependencies in the shared runtime first, for example "
-        f"`python3 {_skill_root() / 'scripts' / 'codex_ppt_runtime.py'} bootstrap`, "
+        "Install dlazy-ppt dependencies in the shared runtime first, for example "
+        f"`python3 {_skill_root() / 'scripts' / 'dlazy_ppt_runtime.py'} bootstrap`, "
         f"or install {package} directly with `{runtime_python} -m pip install "
         f"{package_arg}`. Requirements file: `{requirements}`."
     )
 
 
 def _ensure_api_key(dry_run: bool) -> None:
-    if os.getenv("OPENAI_API_KEY"):
-        print(f"OPENAI_API_KEY is set. API target: {_api_target_label()}.", file=sys.stderr)
+    if dlazy_client.api_key():
+        print(f"DLAZY_API_KEY is set. API target: {_api_target_label()}.", file=sys.stderr)
         return
     if dry_run:
-        _warn(f"OPENAI_API_KEY is not set; dry-run only. API target: {_api_target_label()}.")
+        _warn(f"DLAZY_API_KEY is not set; dry-run only. API target: {_api_target_label()}.")
         return
-    runtime_script = _skill_root() / "scripts" / "codex_ppt_runtime.py"
+    runtime_script = _skill_root() / "scripts" / "dlazy_ppt_runtime.py"
     config_doc = _skill_root() / "docs" / "image-model-configuration.md"
-    base_url = _api_base_url()
-    model = _default_model()
-    if base_url:
-        command = (
-            f'python3 {runtime_script} config --api-key "your-api-key" '
-            f'--base-url "{base_url}" --model {model}'
-        )
-        target_hint = f"Detected third-party OpenAI-compatible API via OPENAI_BASE_URL={base_url}."
-    else:
-        command = f'python3 {runtime_script} config --api-key "your-api-key" --model {model}'
-        target_hint = "Detected official OpenAI API mode because OPENAI_BASE_URL is not set."
     _die(
-        "OPENAI_API_KEY is not set for codex-ppt CLI/API fallback.\n"
-        f"{target_hint}\n"
-        "Use the built-in image tool if it is available. Otherwise configure the shared runtime once:\n"
-        f"  {command}\n"
-        "To use a third-party proxy, set OPENAI_BASE_URL and the provider's model name.\n"
+        "DLAZY_API_KEY is not set.\n"
+        f"Get a key from {dlazy_client.API_KEY_URL}, then configure the shared runtime once:\n"
+        f'  python3 {runtime_script} config --api-key "your-dlazy-api-key"\n'
         f"Details: {config_doc}"
     )
 
@@ -211,122 +176,127 @@ def _normalize_output_format(fmt: Optional[str]) -> str:
     if not fmt:
         return DEFAULT_OUTPUT_FORMAT
     fmt = fmt.lower()
-    if fmt not in {"png", "jpeg", "jpg", "webp"}:
+    if fmt == "jpg":
+        fmt = "jpeg"
+    if fmt not in ALLOWED_FORMATS:
         _die("output-format must be png, jpeg, jpg, or webp.")
-    return "jpeg" if fmt == "jpg" else fmt
+    return fmt
 
 
-def _parse_size(size: str) -> Optional[Tuple[int, int]]:
-    match = re.fullmatch(r"([1-9][0-9]*)x([1-9][0-9]*)", size)
-    if not match:
-        return None
-    return int(match.group(1)), int(match.group(2))
-
-
-def _validate_gpt_image_2_size(size: str) -> None:
-    if size == "auto":
+def _validate_size(size: str) -> None:
+    if size in ALLOWED_SIZES:
         return
-
-    parsed = _parse_size(size)
-    if parsed is None:
-        _die("size must be auto or WIDTHxHEIGHT, for example 1024x1024.")
-
-    width, height = parsed
-    max_edge = max(width, height)
-    min_edge = min(width, height)
-    total_pixels = width * height
-
-    if max_edge > GPT_IMAGE_2_MAX_EDGE:
-        _die("gpt-image-2 size maximum edge length must be less than or equal to 3840px.")
-    if width % 16 != 0 or height % 16 != 0:
-        _die("gpt-image-2 size width and height must be multiples of 16px.")
-    if max_edge / min_edge > GPT_IMAGE_2_MAX_RATIO:
-        _die("gpt-image-2 size long edge to short edge ratio must not exceed 3:1.")
-    if total_pixels < GPT_IMAGE_2_MIN_PIXELS or total_pixels > GPT_IMAGE_2_MAX_PIXELS:
-        _die(
-            "gpt-image-2 size total pixels must be at least 655,360 and no more than 8,294,400."
-        )
-
-
-def _validate_size(size: str, model: str) -> None:
-    if _is_gpt_image_2_model(model):
-        _validate_gpt_image_2_size(size)
-        return
-
-    if size not in ALLOWED_LEGACY_SIZES:
-        _die(
-            "size must be one of 1024x1024, 1536x1024, 1024x1536, or auto for this GPT Image model."
-        )
+    _die(
+        f"size must be one of {', '.join(sorted(ALLOWED_SIZES))}. "
+        f"Slides are 16:9, so use {' or '.join(SIZES_16_9)}."
+    )
 
 
 def _validate_quality(quality: str) -> None:
     if quality not in ALLOWED_QUALITIES:
-        _die("quality must be one of low, medium, high, or auto.")
+        _die("quality must be one of low, medium, high.")
 
 
-def _validate_background(background: Optional[str]) -> None:
-    if background not in ALLOWED_BACKGROUNDS:
-        _die("background must be one of transparent, opaque, or auto.")
+def _validate_prompt(prompt: str) -> None:
+    """Reject an over-long prompt here rather than paying for a 400.
 
-
-def _validate_input_fidelity(input_fidelity: Optional[str]) -> None:
-    if input_fidelity not in ALLOWED_INPUT_FIDELITIES:
-        _die("input-fidelity must be one of low or high.")
-
-
-def _validate_model(model: str) -> None:
-    if GPT_IMAGE_MODEL_PREFIX not in model:
+    The prompt cannot be split the way narration can — half a slide description
+    renders half a slide — so an over-long prompt has to be shortened by the
+    caller, and saying so is more useful than truncating silently.
+    """
+    if len(prompt) > MAX_PROMPT_CHARS:
         _die(
-            "model must be a GPT Image model name containing 'gpt-image-' "
-            "(for example gpt-image-2, openai/gpt-image-2, gpt-image-1.5, "
-            "gpt-image-1, or gpt-image-1-mini)."
-        )
-
-
-def _is_gpt_image_2_model(model: str) -> bool:
-    return GPT_IMAGE_2_MODEL in model
-
-
-def _validate_transparency(background: Optional[str], output_format: str) -> None:
-    if background == "transparent" and output_format not in {"png", "webp"}:
-        _die("transparent background requires output-format png or webp.")
-
-
-def _validate_model_specific_options(
-    *,
-    model: str,
-    background: Optional[str],
-    input_fidelity: Optional[str] = None,
-) -> None:
-    if not _is_gpt_image_2_model(model):
-        return
-    if background == "transparent":
-        _die(
-            "transparent backgrounds are not supported in gpt-image-2, the latest model. "
-            "Use --model gpt-image-1.5 --background transparent --output-format png instead."
-        )
-    if input_fidelity is not None:
-        _die(
-            "input_fidelity is not supported in gpt-image-2 because image inputs always use high fidelity for this model."
+            f"prompt is {len(prompt)} characters; the image tool accepts at most "
+            f"{MAX_PROMPT_CHARS}. Shorten the slide description or drop optional "
+            "prompt fields (--scene, --materials, --negative)."
         )
 
 
 def _validate_generate_payload(payload: Dict[str, Any]) -> None:
-    model = str(payload.get("model", DEFAULT_MODEL))
-    _validate_model(model)
     n = int(payload.get("n", 1))
     if n < 1 or n > 10:
         _die("n must be between 1 and 10")
-    size = str(payload.get("size", DEFAULT_SIZE))
-    quality = str(payload.get("quality", DEFAULT_QUALITY))
-    background = payload.get("background")
-    _validate_size(size, model)
-    _validate_quality(quality)
-    _validate_background(background)
-    _validate_model_specific_options(model=model, background=background)
-    oc = payload.get("output_compression")
-    if oc is not None and not (0 <= int(oc) <= 100):
-        _die("output_compression must be between 0 and 100")
+    _validate_size(str(payload.get("size", DEFAULT_SIZE)))
+    _validate_quality(str(payload.get("quality", DEFAULT_QUALITY)))
+    _validate_prompt(str(payload.get("prompt", "")))
+
+
+def _tool_input(payload: Dict[str, Any], image_urls: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Translate the internal payload into the tool's declared input schema.
+
+    `n` stays out of it: the tool renders one image per call, so repeat counts
+    are handled by calling it repeatedly.
+    """
+    tool_input: Dict[str, Any] = {
+        "prompt": payload["prompt"],
+        "size": payload.get("size", DEFAULT_SIZE),
+        "quality": payload.get("quality", DEFAULT_QUALITY),
+        "imageFormat": payload.get("output_format", DEFAULT_OUTPUT_FORMAT),
+    }
+    if image_urls:
+        tool_input["images"] = image_urls
+    return tool_input
+
+
+def _generate_images(payload: Dict[str, Any], image_urls: Optional[List[str]] = None) -> List[bytes]:
+    """Render `n` images, one tool call each."""
+    model = str(payload.get("model", DEFAULT_MODEL))
+    tool_input = _tool_input(payload, image_urls)
+    images: List[bytes] = []
+    for _ in range(int(payload.get("n", 1))):
+        images.extend(dlazy_client.generate_images(model, tool_input))
+    return images
+
+
+def _is_transient_error(exc: Exception) -> bool:
+    """Whether a failed call is worth retrying.
+
+    Rate limits and server-side hiccups clear on their own; a rejected prompt or
+    a missing API key never will, and retrying those just burns the batch.
+    """
+    msg = str(exc).lower()
+    if "429" in msg or "rate limit" in msg or "too many requests" in msg:
+        return True
+    if "timeout" in msg or "timed out" in msg or "connection reset" in msg:
+        return True
+    return any(f" ({code}" in msg for code in (500, 502, 503, 504))
+
+
+async def _generate_with_retries(
+    payload: Dict[str, Any],
+    *,
+    attempts: int,
+    job_label: str,
+) -> List[bytes]:
+    last_exc: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            # The client is synchronous; a thread per in-flight job keeps the
+            # batch concurrent without pulling in an async HTTP stack.
+            return await asyncio.to_thread(_generate_images, payload)
+        except Exception as exc:
+            last_exc = exc
+            if not _is_transient_error(exc) or attempt == attempts:
+                raise
+            sleep_s = min(60.0, 2.0**attempt)
+            print(
+                f"{job_label} attempt {attempt}/{attempts} failed ({exc}); "
+                f"retrying in {sleep_s:.1f}s",
+                file=sys.stderr,
+            )
+            await asyncio.sleep(sleep_s)
+    raise last_exc or RuntimeError("unknown error")
+
+
+def _upload_input_images(image_paths: List[Path]) -> List[str]:
+    """Put local reference images where the model can read them."""
+    if len(image_paths) > MAX_INPUT_IMAGES:
+        _die(f"at most {MAX_INPUT_IMAGES} input images are supported, got {len(image_paths)}.")
+    urls = []
+    for path in image_paths:
+        print(f"Uploading {path}", file=sys.stderr)
+        urls.append(dlazy_client.upload_file(path))
+    return urls
 
 
 def _build_output_paths(
@@ -420,15 +390,15 @@ def _print_request(payload: dict) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def _decode_and_write(images: List[str], outputs: List[Path], force: bool) -> None:
-    for idx, image_b64 in enumerate(images):
+def _write_images(images: List[bytes], outputs: List[Path], force: bool) -> None:
+    for idx, raw in enumerate(images):
         if idx >= len(outputs):
             break
         out_path = outputs[idx]
         if out_path.exists() and not force:
             _die(f"Output already exists: {out_path} (use --force to overwrite)")
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(base64.b64decode(image_b64))
+        out_path.write_bytes(raw)
         print(f"Wrote {out_path}")
 
 
@@ -472,8 +442,8 @@ def _downscale_image_bytes(image_bytes: bytes, *, max_dim: int, output_format: s
         return out.getvalue()
 
 
-def _decode_write_and_downscale(
-    images: List[str],
+def _write_and_downscale(
+    images: List[bytes],
     outputs: List[Path],
     *,
     force: bool,
@@ -481,7 +451,7 @@ def _decode_write_and_downscale(
     downscale_suffix: str,
     output_format: str,
 ) -> None:
-    for idx, image_b64 in enumerate(images):
+    for idx, raw in enumerate(images):
         if idx >= len(outputs):
             break
         out_path = outputs[idx]
@@ -489,7 +459,6 @@ def _decode_write_and_downscale(
             _die(f"Output already exists: {out_path} (use --force to overwrite)")
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        raw = base64.b64decode(image_b64)
         out_path.write_bytes(raw)
         print(f"Wrote {out_path}")
 
@@ -602,10 +571,7 @@ async def _run_generate_batch(args: argparse.Namespace) -> int:
         "n": args.n,
         "size": args.size,
         "quality": args.quality,
-        "background": args.background,
         "output_format": args.output_format,
-        "output_compression": args.output_compression,
-        "moderation": args.moderation,
     }
 
     if args.dry_run:
@@ -623,7 +589,6 @@ async def _run_generate_batch(args: argparse.Namespace) -> int:
 
             _validate_generate_payload(job_payload)
             effective_output_format = _normalize_output_format(job_payload.get("output_format"))
-            _validate_transparency(job_payload.get("background"), effective_output_format)
             job_payload["output_format"] = effective_output_format
 
             n = int(job_payload.get("n", 1))
@@ -642,19 +607,17 @@ async def _run_generate_batch(args: argparse.Namespace) -> int:
                 ]
             _print_request(
                 {
-                    "endpoint": _preview_endpoint("generate"),
+                    "endpoint": f"{dlazy_client.base_url()}/api/cli/tool",
                     "job": i,
+                    "model": job_payload["model"],
+                    "calls": n,
                     "outputs": [str(p) for p in outputs],
                     "outputs_downscaled": downscaled,
-                    **{
-                        **job_payload,
-                        "model": _preview_model(str(job_payload["model"]), "generate"),
-                    },
+                    "input": _tool_input(job_payload),
                 }
             )
         return 0
 
-    provider = create_image_provider(api_key=os.getenv("OPENAI_API_KEY"), base_url=_api_base_url())
     sem = asyncio.Semaphore(args.concurrency)
 
     any_failed = False
@@ -676,7 +639,6 @@ async def _run_generate_batch(args: argparse.Namespace) -> int:
         n = int(payload.get("n", 1))
         _validate_generate_payload(payload)
         effective_output_format = _normalize_output_format(payload.get("output_format"))
-        _validate_transparency(payload.get("background"), effective_output_format)
         payload["output_format"] = effective_output_format
         outputs = _job_output_paths(
             out_dir=out_dir,
@@ -690,14 +652,14 @@ async def _run_generate_batch(args: argparse.Namespace) -> int:
             async with sem:
                 print(f"{job_label} starting", file=sys.stderr)
                 started = time.time()
-                images = await provider.generate_batch(
+                images = await _generate_with_retries(
                     payload,
                     attempts=args.max_attempts,
                     job_label=job_label,
                 )
                 elapsed = time.time() - started
                 print(f"{job_label} completed in {elapsed:.1f}s", file=sys.stderr)
-            _decode_write_and_downscale(
+            _write_and_downscale(
                 images,
                 outputs,
                 force=args.force,
@@ -742,16 +704,13 @@ def _generate(args: argparse.Namespace) -> None:
         "n": args.n,
         "size": args.size,
         "quality": args.quality,
-        "background": args.background,
         "output_format": args.output_format,
-        "output_compression": args.output_compression,
-        "moderation": args.moderation,
     }
     payload = {k: v for k, v in payload.items() if v is not None}
 
     output_format = _normalize_output_format(args.output_format)
-    _validate_transparency(args.background, output_format)
     payload["output_format"] = output_format
+    _validate_prompt(prompt)
     output_paths = _build_output_paths(args.out, output_format, args.n, args.out_dir)
     downscaled = None
     if args.downscale_max_dim is not None:
@@ -760,28 +719,26 @@ def _generate(args: argparse.Namespace) -> None:
     if args.dry_run:
         _print_request(
             {
-                "endpoint": _preview_endpoint("generate"),
+                "endpoint": f"{dlazy_client.base_url()}/api/cli/tool",
+                "model": payload["model"],
+                "calls": int(payload.get("n", 1)),
                 "outputs": [str(p) for p in output_paths],
                 "outputs_downscaled": downscaled,
-                **{
-                    **payload,
-                    "model": _preview_model(str(payload["model"]), "generate"),
-                },
+                "input": _tool_input(payload),
             }
         )
         return
 
     print(
-        "Calling Image API (generation). This can take up to a couple of minutes.",
+        "Calling the dLazy image tool (generation). This can take up to a couple of minutes.",
         file=sys.stderr,
     )
     started = time.time()
-    provider = create_image_provider(api_key=os.getenv("OPENAI_API_KEY"), base_url=_api_base_url())
-    images = provider.generate(payload)
+    images = _generate_images(payload)
     elapsed = time.time() - started
     print(f"Generation completed in {elapsed:.1f}s.", file=sys.stderr)
 
-    _decode_write_and_downscale(
+    _write_and_downscale(
         images,
         output_paths,
         force=args.force,
@@ -796,14 +753,6 @@ def _edit(args: argparse.Namespace) -> None:
     prompt = _augment_prompt(args, prompt)
 
     image_paths = _check_image_paths(args.image)
-    mask_path = Path(args.mask) if args.mask else None
-    if mask_path:
-        if not mask_path.exists():
-            _die(f"Mask file not found: {mask_path}")
-        if mask_path.suffix.lower() != ".png":
-            _warn(f"Mask should be a PNG with an alpha channel: {mask_path}")
-        if mask_path.stat().st_size > MAX_IMAGE_BYTES:
-            _warn(f"Mask exceeds 50MB limit: {mask_path}")
 
     payload = {
         "model": args.model,
@@ -811,52 +760,44 @@ def _edit(args: argparse.Namespace) -> None:
         "n": args.n,
         "size": args.size,
         "quality": args.quality,
-        "background": args.background,
         "output_format": args.output_format,
-        "output_compression": args.output_compression,
-        "input_fidelity": args.input_fidelity,
-        "moderation": args.moderation,
     }
     payload = {k: v for k, v in payload.items() if v is not None}
 
     output_format = _normalize_output_format(args.output_format)
-    _validate_transparency(args.background, output_format)
     payload["output_format"] = output_format
-    _validate_input_fidelity(args.input_fidelity)
+    _validate_prompt(prompt)
     output_paths = _build_output_paths(args.out, output_format, args.n, args.out_dir)
     downscaled = None
     if args.downscale_max_dim is not None:
         downscaled = [str(_derive_downscale_path(p, args.downscale_suffix)) for p in output_paths]
 
     if args.dry_run:
-        payload_preview = dict(payload)
-        payload_preview["image"] = [str(p) for p in image_paths]
-        if mask_path:
-            payload_preview["mask"] = str(mask_path)
+        preview_input = _tool_input(payload, [str(p) for p in image_paths])
         _print_request(
             {
-                "endpoint": _preview_endpoint("edit"),
+                "endpoint": f"{dlazy_client.base_url()}/api/cli/tool",
+                "model": payload["model"],
+                "calls": int(payload.get("n", 1)),
                 "outputs": [str(p) for p in output_paths],
                 "outputs_downscaled": downscaled,
-                **{
-                    **payload_preview,
-                    "model": _preview_model(str(payload_preview["model"]), "edit"),
-                },
+                "note": "local paths under `images` are uploaded and replaced by their URLs",
+                "input": preview_input,
             }
         )
         return
 
     print(
-        f"Calling Image API (edit) with {len(image_paths)} image(s).",
+        f"Calling the dLazy image tool (edit) with {len(image_paths)} image(s).",
         file=sys.stderr,
     )
     started = time.time()
-    provider = create_image_provider(api_key=os.getenv("OPENAI_API_KEY"), base_url=_api_base_url())
-    images = provider.edit(payload, image_paths, mask_path)
+    image_urls = _upload_input_images(image_paths)
+    images = _generate_images(payload, image_urls)
 
     elapsed = time.time() - started
     print(f"Edit completed in {elapsed:.1f}s.", file=sys.stderr)
-    _decode_write_and_downscale(
+    _write_and_downscale(
         images,
         output_paths,
         force=args.force,
@@ -871,12 +812,9 @@ def _add_shared_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--prompt")
     parser.add_argument("--prompt-file")
     parser.add_argument("--n", type=int, default=1)
-    parser.add_argument("--size", default=DEFAULT_SIZE)
-    parser.add_argument("--quality", default=DEFAULT_QUALITY)
-    parser.add_argument("--background")
+    parser.add_argument("--size", default=DEFAULT_SIZE, choices=sorted(ALLOWED_SIZES))
+    parser.add_argument("--quality", default=DEFAULT_QUALITY, choices=sorted(ALLOWED_QUALITIES))
     parser.add_argument("--output-format")
-    parser.add_argument("--output-compression", type=int)
-    parser.add_argument("--moderation")
     parser.add_argument("--out", default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--out-dir")
     parser.add_argument("--force", action="store_true")
@@ -906,7 +844,7 @@ def _add_shared_args(parser: argparse.ArgumentParser) -> None:
 def main() -> int:
     _load_runtime_env()
     parser = argparse.ArgumentParser(
-        description="Fallback CLI for explicit image generation or editing via GPT Image models"
+        description="Generate or edit slide images through the dLazy tool API"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -928,8 +866,6 @@ def main() -> int:
     edit_parser = subparsers.add_parser("edit", help="Edit an existing image")
     _add_shared_args(edit_parser)
     edit_parser.add_argument("--image", action="append", required=True)
-    edit_parser.add_argument("--mask")
-    edit_parser.add_argument("--input-fidelity")
     edit_parser.set_defaults(func=_edit)
 
     args = parser.parse_args()
@@ -939,22 +875,13 @@ def main() -> int:
         _die("--concurrency must be between 1 and 25")
     if getattr(args, "max_attempts", 3) < 1 or getattr(args, "max_attempts", 3) > 10:
         _die("--max-attempts must be between 1 and 10")
-    if args.output_compression is not None and not (0 <= args.output_compression <= 100):
-        _die("--output-compression must be between 0 and 100")
     if args.command == "generate-batch" and not args.out_dir:
         _die("generate-batch requires --out-dir")
     if getattr(args, "downscale_max_dim", None) is not None and args.downscale_max_dim < 1:
         _die("--downscale-max-dim must be >= 1")
 
-    _validate_model(args.model)
-    _validate_size(args.size, args.model)
+    _validate_size(args.size)
     _validate_quality(args.quality)
-    _validate_background(args.background)
-    _validate_model_specific_options(
-        model=args.model,
-        background=args.background,
-        input_fidelity=getattr(args, "input_fidelity", None),
-    )
     _ensure_api_key(args.dry_run)
 
     args.func(args)

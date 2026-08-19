@@ -1,6 +1,6 @@
 # Design Philosophy
 
-Codex PPT Skill reflects some of my thinking about using AI to create presentations.
+dLazy PPT Skill reflects some of my thinking about using AI to create presentations.
 
 The most important thing about AI-generated presentations is not speed, but having a controllable process that produces usable results.
 

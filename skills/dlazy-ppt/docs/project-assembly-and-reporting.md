@@ -28,7 +28,7 @@ If the user did not specify a destination, use the current working directory or 
 You may initialize the directory structure with:
 
 ```bash
-~/.codex-ppt-skill/.venv/bin/python {skill_root}/scripts/assemble_ppt.py {base_dir} {deck_name}.pptx --init
+~/.dlazy-ppt/.venv/bin/python {skill_root}/scripts/assemble_ppt.py {base_dir} {deck_name}.pptx --init
 ```
 
 ## Quality Check And Repair
@@ -42,7 +42,7 @@ Before assembling the PPT, inspect every slide image. Check:
 - No page number appears unless the user requested one.
 - Important elements do not overlap.
 
-If a slide has severe text or layout issues, regenerate it with a more constrained prompt. If a slide is mostly correct but has a localized issue, use the selected backend's edit capability when available. In CLI/API fallback mode, use `scripts/image_gen.py edit --image {slide_path} --prompt ... --out {new_slide_path}` and replace the final slide only after validating the edited output.
+If a slide has severe text or layout issues, regenerate it with a more constrained prompt. If a slide is mostly correct but has a localized issue, use `scripts/image_gen.py edit --image {slide_path} --prompt ... --out {new_slide_path}` and replace the final slide only after validating the edited output.
 
 ## Speaker Notes
 
@@ -98,10 +98,10 @@ Use headings that the assembly script can map back to slide numbers:
 
 ## Assembly
 
-Before running `scripts/assemble_ppt.py` or the CLI/API fallback scripts, make sure the shared runtime exists. If `~/.codex-ppt-skill/.venv/bin/python` is missing, or if importing script dependencies fails, create or refresh the environment:
+Before running `scripts/assemble_ppt.py` or the image commands, make sure the shared runtime exists. If `~/.dlazy-ppt/.venv/bin/python` is missing, or if importing script dependencies fails, create or refresh the environment:
 
 ```bash
-python3 {skill_root}/scripts/codex_ppt_runtime.py bootstrap
+python3 {skill_root}/scripts/dlazy_ppt_runtime.py bootstrap
 ```
 
 This is an internal setup step for the skill. Do not ask the user to run these commands unless dependency installation fails and user approval or troubleshooting is required.
@@ -109,7 +109,7 @@ This is an internal setup step for the skill. Do not ask the user to run these c
 Run:
 
 ```bash
-~/.codex-ppt-skill/.venv/bin/python {skill_root}/scripts/assemble_ppt.py {base_dir} {deck_name}.pptx --aspect-ratio 16:9
+~/.dlazy-ppt/.venv/bin/python {skill_root}/scripts/assemble_ppt.py {base_dir} {deck_name}.pptx --aspect-ratio 16:9
 ```
 
 Important:
@@ -122,7 +122,7 @@ Important:
 - If `{base_dir}/{deck_name}/speech.md` exists and uses `Slide N` headings, the script writes those notes into the corresponding PPT speaker notes.
 - The script writes `{base_dir}/{deck_name}/{deck_name}.pptx`.
 
-`assemble_ppt.py` supports `16:9` and `4:3`. Use `16:9` unless the user requests otherwise. `image_gen.py` loads `~/.codex-ppt-skill/.env` automatically for `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `CODEX_PPT_IMAGE_MODEL`. Run `python3 {skill_root}/scripts/codex_ppt_runtime.py doctor --check-api` when troubleshooting API access.
+`assemble_ppt.py` supports `16:9` and `4:3`. Use `16:9` unless the user requests otherwise. `image_gen.py` loads `~/.dlazy-ppt/.env` automatically for `DLAZY_API_KEY`, `DLAZY_BASE_URL`, and `DLAZY_PPT_IMAGE_MODEL`. Run `python3 {skill_root}/scripts/dlazy_ppt_runtime.py doctor --check-api` when troubleshooting API access.
 
 ## Final Report
 
@@ -135,10 +135,10 @@ Report:
 - `speech.md` path
 - `slide_jobs.json` path
 - Number of slides
-- Confirm which image backend was used and that every non-sample slide result was recorded with `record_slide_result.py`.
+- Confirm every non-sample slide result was recorded with `record_slide_result.py`.
 - Confirm that speaker notes from `speech.md` were written into the PPT, if applicable
 - Any slides that were regenerated, blocked, or still have known limitations
-- If the deck's style is custom or noticeably adapted (extracted from user references, tuned during sampling, or otherwise not an unmodified built-in style), end with a one-sentence tip that the style can be saved to the personal style library for future reuse, for example: "如果你喜欢这套风格，可以说「保存这个风格」，我会把它存入个人风格库（`~/.codex-ppt-skill/references/`），以后可以直接复用，更新 skill 也不会丢失。" If the user agrees, read `docs/style-library.md`. Skip this tip when the deck used an unmodified built-in style.
+- If the deck's style is custom or noticeably adapted (extracted from user references, tuned during sampling, or otherwise not an unmodified built-in style), end with a one-sentence tip that the style can be saved to the personal style library for future reuse, for example: "如果你喜欢这套风格，可以说「保存这个风格」，我会把它存入个人风格库（`~/.dlazy-ppt/references/`），以后可以直接复用，更新 skill 也不会丢失。" If the user agrees, read `docs/style-library.md`. Skip this tip when the deck used an unmodified built-in style.
 
 ## Prompting Principles
 

@@ -1,6 +1,6 @@
 # 设计理念
 
-Codex PPT Skill 里面放了我对 AI 做 PPT 的一些思考。
+dLazy PPT Skill 里面放了我对 AI 做 PPT 的一些思考。
 
 AI 做 PPT 最重要的不是快，而是流程可控，做出来可用。
 

@@ -20,10 +20,9 @@ Do not place source assets in `origin_image/`; that directory is only for final 
 For slides that must include a user-supplied figure:
 
 - Record the exact asset path or attachment name in `outline.md` for that slide, preferably as a Markdown image reference inside that slide's `Required images` list, then ask the user to confirm the mapping before generation.
-- Stay on the already selected image backend. Do not switch between built-in image generation and CLI/API fallback only because a slide includes source images.
-- Use the selected backend's reference-image or edit capability when available, with the supplied figure visible as an input image.
-- In built-in `image_gen` mode, every source image must be visible in the conversation context before generating any slide that depends on it. User attachments and images generated earlier in the thread already qualify. For local image paths, inspect each required image with `view_image` first, then generate or edit the slide.
-- In built-in `image_gen` mode, `view_image` is the required way to make local image paths visible to the conversation before generation. It is not a filename parameter to `image_gen`; the generation prompt must still label the visible image by role, such as `Image 1: strict input asset` or `Image 2: approved sample slide style reference`.
+- Do not switch away from `scripts/image_gen.py` just because a slide includes source images.
+- Attach every required figure with `scripts/image_gen.py edit --image {path}`, one flag per image, at most 5 per call. The files are uploaded to dLazy storage so the model reads the real asset rather than a description of it.
+- The prompt must still label each attached image by role, such as `Image 1: strict input asset` or `Image 2: approved sample slide style reference`. Attaching a file does not tell the model what it is for.
 - Ask the model to preserve the supplied figure's data, labels, axes, colors, and visual content, and only compose the surrounding slide layout, title, captions, callouts, and background.
 - Do not ask the model to "redraw", "recreate", "imagine", or "generate a similar chart" for result figures unless the user explicitly wants a stylized redraw.
 - After generation, inspect the output and ask the user to pay special attention to whether required figures were used correctly.

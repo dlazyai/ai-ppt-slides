@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Manage the cross-agent runtime for codex-ppt.
+"""Manage the cross-agent runtime for dlazy-ppt.
 
 The runtime lives outside any specific agent installation so Codex, Claude Code,
 OpenClaw, Hermes Agent, and other local agents can share one virtual
-environment and one API configuration.
+environment and one dLazy API configuration.
 """
 
 from __future__ import annotations
@@ -17,18 +17,22 @@ import subprocess
 import sys
 from typing import Dict, Iterable, Optional
 import urllib.error
-import urllib.parse
 import urllib.request
 import venv
 
 
-DEFAULT_RUNTIME_HOME = "~/.codex-ppt-skill"
+DEFAULT_RUNTIME_HOME = "~/.dlazy-ppt"
 DEFAULT_MODEL = "gpt-image-2"
-ENV_FIELDS = ("OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_PPT_IMAGE_MODEL")
+DEFAULT_BASE_URL = "https://dlazy.com"
+ENV_FIELDS = ("DLAZY_API_KEY", "DLAZY_BASE_URL", "DLAZY_PPT_IMAGE_MODEL")
+
+# Must match dlazy_client.CLI_VERSION: the tool API answers 426 without it.
+CLI_VERSION = "1.2.3"
+API_KEY_URL = "https://dlazy.com/dashboard/organization/api-key"
 
 
 def _runtime_home() -> Path:
-    return Path(os.getenv("CODEX_PPT_HOME", DEFAULT_RUNTIME_HOME)).expanduser()
+    return Path(os.getenv("DLAZY_PPT_HOME", DEFAULT_RUNTIME_HOME)).expanduser()
 
 
 def _skill_root() -> Path:
@@ -89,7 +93,7 @@ def _quote_env_value(value: str) -> str:
 def _write_env_file(path: Path, values: Dict[str, str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "# codex-ppt shared runtime configuration",
+        "# dlazy-ppt shared runtime configuration",
         "# Used by Codex, Claude Code, OpenClaw, Hermes Agent, and other local agents.",
     ]
     for key in ENV_FIELDS:
@@ -147,21 +151,21 @@ def _config(args: argparse.Namespace) -> int:
     values = _parse_env_file(env_file)
 
     if args.api_key:
-        values["OPENAI_API_KEY"] = args.api_key
+        values["DLAZY_API_KEY"] = args.api_key.strip()
 
     if args.base_url is not None:
-        values["OPENAI_BASE_URL"] = args.base_url.strip()
+        values["DLAZY_BASE_URL"] = args.base_url.strip()
     if args.model is not None:
-        values["CODEX_PPT_IMAGE_MODEL"] = args.model.strip()
+        values["DLAZY_PPT_IMAGE_MODEL"] = args.model.strip()
 
     if args.clear_base_url:
-        values.pop("OPENAI_BASE_URL", None)
+        values.pop("DLAZY_BASE_URL", None)
 
     _write_env_file(env_file, values)
     print(f"Wrote {env_file}")
     for key in ENV_FIELDS:
         value = values.get(key, "")
-        if key == "OPENAI_API_KEY":
+        if key == "DLAZY_API_KEY":
             value = _mask_secret(value)
         print(f"{key}={value or '<unset>'}")
     return 0
@@ -171,7 +175,7 @@ def _check_python_imports(python: Path) -> bool:
     if not python.exists():
         print(f"venv: missing ({python})")
         return False
-    code = "import openai, PIL, pptx; print('imports ok')"
+    code = "import requests, PIL, pptx; print('imports ok')"
     proc = subprocess.run(
         [str(python), "-c", code],
         stdout=subprocess.PIPE,
@@ -187,31 +191,32 @@ def _check_python_imports(python: Path) -> bool:
     return True
 
 
-def _models_request(base_url: str, api_key: str, timeout: int) -> bool:
-    endpoint = base_url.rstrip("/") + "/models"
+def _manifest_request(base_url: str, api_key: str, timeout: int) -> Optional[dict]:
+    """Fetch the tool manifest - the cheapest call that proves the key works."""
+    endpoint = base_url.rstrip("/") + "/api/cli/tool/manifest"
     req = urllib.request.Request(
         endpoint,
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "X-CLI-Version": CLI_VERSION,
+        },
         method="GET",
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            print(f"models endpoint: HTTP {resp.status}")
-            return 200 <= resp.status < 300
+            print(f"tool manifest: HTTP {resp.status}")
+            return json.loads(resp.read().decode("utf-8", "replace"))
     except urllib.error.HTTPError as exc:
         body = exc.read(800).decode("utf-8", "replace")
-        print(f"models endpoint: HTTP {exc.code}")
+        print(f"tool manifest: HTTP {exc.code}")
+        if exc.code == 401:
+            print(f"The API key was rejected. Get a valid key from {API_KEY_URL}.")
         if body:
             print(body)
-        return False
+        return None
     except Exception as exc:
-        print(f"models endpoint: {exc.__class__.__name__}: {exc}")
-        return False
-
-
-def _is_atlascloud_base_url(base_url: str) -> bool:
-    hostname = urllib.parse.urlparse(base_url).hostname or ""
-    return "atlascloud.ai" in hostname.lower()
+        print(f"tool manifest: {exc.__class__.__name__}: {exc}")
+        return None
 
 
 def _doctor(args: argparse.Namespace) -> int:
@@ -225,45 +230,52 @@ def _doctor(args: argparse.Namespace) -> int:
     ok = _check_python_imports(_venv_python(home)) and ok
 
     values = _load_env_values(home)
-    api_key = values.get("OPENAI_API_KEY", "")
-    base_url = values.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    model = values.get("CODEX_PPT_IMAGE_MODEL", DEFAULT_MODEL)
+    api_key = values.get("DLAZY_API_KEY", "")
+    base_url = values.get("DLAZY_BASE_URL", DEFAULT_BASE_URL)
+    model = values.get("DLAZY_PPT_IMAGE_MODEL", DEFAULT_MODEL)
 
-    print(f"OPENAI_API_KEY={'set (' + _mask_secret(api_key) + ')' if api_key else '<unset>'}")
-    print(f"OPENAI_BASE_URL={base_url}")
-    print(f"CODEX_PPT_IMAGE_MODEL={model}")
+    print(f"DLAZY_API_KEY={'set (' + _mask_secret(api_key) + ')' if api_key else '<unset>'}")
+    print(f"DLAZY_BASE_URL={base_url}")
+    print(f"DLAZY_PPT_IMAGE_MODEL={model}")
 
-    if "gpt-image-" not in model:
-        print("model check: warning, model name should contain 'gpt-image-'")
+    if not api_key:
+        print(f"api key: missing, get one from {API_KEY_URL}")
         ok = False
-    else:
-        print("model check: ok")
 
     if args.check_api:
         if not api_key:
-            print("api check: skipped, OPENAI_API_KEY is unset")
-            ok = False
-        elif _is_atlascloud_base_url(base_url):
-            print("api check: AtlasCloud provider detected; skipping /models probe")
+            print("api check: skipped, DLAZY_API_KEY is unset")
         else:
-            ok = _models_request(base_url, api_key, args.timeout) and ok
+            manifest = _manifest_request(base_url, api_key, args.timeout)
+            if manifest is None:
+                ok = False
+            else:
+                # The manifest is the authority on which tools this account can
+                # run, so a mistyped or unavailable model is caught here rather
+                # than as a 400 halfway through a deck.
+                names = {t.get("cli_name") or t.get("id") for t in manifest.get("tools", [])}
+                if model in names:
+                    print(f"model check: ok, {model} is available on this account")
+                else:
+                    print(f"model check: {model} is not in this account's tool manifest")
+                    ok = False
 
     return 0 if ok else 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Manage the codex-ppt shared runtime")
+    parser = argparse.ArgumentParser(description="Manage the dlazy-ppt shared runtime")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     bootstrap = subparsers.add_parser("bootstrap", help="Create shared venv and install deps")
     bootstrap.add_argument("--upgrade", action="store_true")
     bootstrap.set_defaults(func=_bootstrap)
 
-    config = subparsers.add_parser("config", help="Write or update shared .env")
-    config.add_argument("--api-key")
-    config.add_argument("--base-url")
+    config = subparsers.add_parser("config", help="Write or update the shared .env")
+    config.add_argument("--api-key", help=f"dLazy API key from {API_KEY_URL}")
+    config.add_argument("--base-url", help="Override the dLazy base URL (self-hosted deployments)")
     config.add_argument("--clear-base-url", action="store_true")
-    config.add_argument("--model")
+    config.add_argument("--model", help="dLazy image tool to use (default: gpt-image-2)")
     config.set_defaults(func=_config)
 
     doctor = subparsers.add_parser("doctor", help="Check runtime and optional API access")

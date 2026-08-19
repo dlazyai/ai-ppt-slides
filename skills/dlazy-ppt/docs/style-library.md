@@ -4,7 +4,7 @@ Read this when the user asks to save a finished deck style, a sample-slide style
 
 The goal is to save a reusable visual system, not the current deck's private content.
 
-User custom styles are saved to `${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/`, outside the skill install directory, so they survive skill updates and reinstalls. Never write user custom styles into the skill's own `references/` directory; that directory is reserved for built-in styles shipped with the skill.
+User custom styles are saved to `${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/`, outside the skill install directory, so they survive skill updates and reinstalls. Never write user custom styles into the skill's own `references/` directory; that directory is reserved for built-in styles shipped with the skill.
 
 ## When To Use
 
@@ -22,7 +22,7 @@ If the user only wants to use a style once, extract a temporary style descriptio
 
 Use the actual visible pages as the source of truth.
 
-- For a finished codex-ppt deck, inspect the final `origin_image/slide_XX.png` files or exported slide page images.
+- For a finished dlazy-ppt deck, inspect the final `origin_image/slide_XX.png` files or exported slide page images.
 - For a sample slide, inspect the approved sample image.
 - For user-provided image references, inspect the image itself.
 - For PDF/PPT/PPTX references, first render or export representative pages/slides into real page images, then inspect those images. Do not infer the style from file structure, text, XML, metadata, or object hierarchy alone.
@@ -58,7 +58,7 @@ Do not save private or one-off content as style:
 Name the file:
 
 ```text
-${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/{style_name}.md
+${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/{style_name}.md
 ```
 
 Create the directory first if it does not exist.
@@ -143,13 +143,13 @@ The JSON should be directly reusable as a slide generation style brief. Keep it 
 
 ## Discovery
 
-No registration step is needed. Future style confirmation steps scan `${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/` and merge its files with the built-in style list, so the saved file is discoverable automatically. Do not edit `docs/outline-style-and-sample.md` or any other file inside the skill for a user custom style.
+No registration step is needed. Future style confirmation steps scan `${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/` and merge its files with the built-in style list, so the saved file is discoverable automatically. Do not edit `docs/outline-style-and-sample.md` or any other file inside the skill for a user custom style.
 
 ## Final Response
 
 Report:
 
 - The new style name.
-- The saved file path under `${CODEX_PPT_HOME:-~/.codex-ppt-skill}/references/`.
+- The saved file path under `${DLAZY_PPT_HOME:-~/.dlazy-ppt}/references/`.
 - That the style is stored outside the skill install, so it survives skill updates and reinstalls.
 - A one-sentence note on how to request it later, for example: "以后可以说：用「深色数据科技风」生成这份 PPT。"

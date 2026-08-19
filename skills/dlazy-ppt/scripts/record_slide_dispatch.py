@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record that a codex-ppt slide job was dispatched to a subagent."""
+"""Record that a dlazy-ppt slide job was dispatched to a subagent."""
 
 from __future__ import annotations
 

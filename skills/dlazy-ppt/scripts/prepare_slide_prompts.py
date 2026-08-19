@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare per-slide image generation jobs for codex-ppt.
+"""Prepare per-slide image generation jobs for dlazy-ppt.
 
 This script is deterministic. It does not call an image model. It turns a
 structured deck spec into one self-contained JSON job file per slide.
@@ -202,7 +202,7 @@ def _build_prompt(
     }
 
     prompt_parts = [
-        "# Codex PPT Slide Image Prompt\n",
+        "# dLazy PPT Slide Image Prompt\n",
         _format_block("Canvas", {
             "type": "16:9 full-slide PowerPoint image",
             "language": deck.get("language", "Chinese"),
@@ -290,18 +290,18 @@ def _write_template(path: Path) -> None:
             "core_claim": "The central thesis that should stay consistent across the deck.",
             "canonical_terms": ["Term one", "Term two", "Term three"],
         },
-        "selected_image_backend": "built-in image tool",
+        "selected_image_backend": "scripts/image_gen.py",
         "max_concurrent_slides": 6,
         "sample_generation_method": {
-            "backend_used": "built-in image tool",
-            "tool_name": "image_gen",
+            "backend_used": "scripts/image_gen.py",
+            "tool_name": "gpt-image-2",
             "mode": "generate",
             "prompt_source": "the approved sample slide job prompt",
-            "size": "16:9 landscape, 2560x1440 target",
+            "size": "16:9 landscape, 2048x1152",
             "quality": "medium",
             "approved_sample_path": "/absolute/path/to/approved-sample-slide.png",
-            "input_context_preparation": "view_image local required images before built-in generation",
-            "handoff_rule": "Subagents must use this same backend/tool/mode; return a blocker if unavailable.",
+            "input_context_preparation": "attach each required local asset with `edit --image`",
+            "handoff_rule": "Subagents must use this same command shape; return a blocker if unavailable.",
         },
         "style": {
             "name": "手绘技术解释风",
@@ -357,7 +357,7 @@ def main() -> int:
     parser.add_argument("--write-template", help="Write an example deck spec JSON and exit.")
     parser.add_argument(
         "--selected-backend",
-        help="Confirmed image backend label, such as `built-in image tool` or `scripts/image_gen.py`.",
+        help="Image tool label, normally `scripts/image_gen.py`.",
     )
     parser.add_argument(
         "--max-concurrent-slides",

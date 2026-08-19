@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Tuple
 
 
 def dependency_hint() -> str:
-    runtime_home = os.path.expanduser(os.environ.get("CODEX_PPT_HOME", "~/.codex-ppt-skill"))
+    runtime_home = os.path.expanduser(os.environ.get("DLAZY_PPT_HOME", "~/.dlazy-ppt"))
     python = os.path.join(
         runtime_home,
         ".venv",
@@ -24,7 +24,7 @@ def dependency_hint() -> str:
     )
     runtime_script = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "codex_ppt_runtime.py",
+        "dlazy_ppt_runtime.py",
     )
     return (
         f"请运行: python3 {runtime_script} bootstrap\n"

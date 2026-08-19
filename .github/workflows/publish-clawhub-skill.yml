@@ -155,7 +155,7 @@ jobs:
           import re
           from pathlib import Path
 
-          path = Path("skills/codex-ppt/SKILL.md")
+          path = Path("skills/dlazy-ppt/SKILL.md")
           version = os.environ["version"]
           text = path.read_text(encoding="utf-8")
 
@@ -190,7 +190,7 @@ jobs:
           path.write_text(frontmatter + body, encoding="utf-8")
           PY
 
-          grep -q "^version: ${version}$" skills/codex-ppt/SKILL.md
+          grep -q "^version: ${version}$" skills/dlazy-ppt/SKILL.md
 
       - name: Authenticate ClawHub
         env:
@@ -206,16 +206,16 @@ jobs:
           clawhub login --token "${CLAWHUB_TOKEN}"
           clawhub whoami
 
-      - name: Publish codex-ppt skill
+      - name: Publish dlazy-ppt skill
         run: |
           set -euo pipefail
 
-          skill_path="${PWD}/skills/codex-ppt"
+          skill_path="${PWD}/skills/dlazy-ppt"
 
           args=(
             "skill" "publish" "${skill_path}"
-            "--slug" "codex-ppt"
-            "--name" "Codex PPT"
+            "--slug" "dlazy-ppt"
+            "--name" "dLazy PPT"
             "--version" "${version}"
             "--changelog" "$(cat "${changelog_file}")"
           )

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Codex PPT workflow emphasizes staged confirmation. Instead of immediately generating the entire presentation, it first confirms the outline, style, image backend, and sample slide to reduce rework.
+The dLazy PPT workflow emphasizes staged confirmation. Instead of immediately generating the entire presentation, it first confirms the outline, style, and sample slide to reduce rework.
 
 ## Stage 1: Review the Source Material
 
@@ -34,11 +34,11 @@ The agent proposes 2-3 style directions and recommends one. Candidates come from
 
 After a style is selected, the entire presentation should maintain a consistent visual language, while individual slide layouts may vary according to the content.
 
-## Stage 4: Confirm the Image-Generation Backend
+## Stage 4: Check That dLazy Is Configured
 
-The Codex built-in image-generation tool is preferred. The workflow switches to `scripts/image_gen.py` only when the built-in tool is unavailable, the user explicitly requests an API/CLI fallback, or the current capability cannot satisfy the request.
+Every slide image is generated through dLazy by `scripts/image_gen.py`. Before the first image, the agent runs `dlazy_ppt_runtime.py doctor --check-api` to confirm the key is configured and the model is available.
 
-Once the image backend is confirmed, the entire presentation should use the same backend without switching midway.
+This is a readiness check, not a choice: there is no second image backend, and the agent must not fall back to its own built-in image tool.
 
 ## Stage 5: Generate and Confirm a Sample Slide
 
@@ -54,7 +54,7 @@ Generate the full deck only after the sample slide is approved.
 
 ## Stage 6: Batch Generation
 
-After the sample slide is approved, the agent generates `origin_image/slide_XX.png` one slide at a time. In environments that support sub-agents, one sub-agent generates each slide in parallel to speed up multi-slide production. Every slide follows the same style and image-generation backend approved for the sample.
+After the sample slide is approved, the agent generates `origin_image/slide_XX.png` one slide at a time. In environments that support sub-agents, one sub-agent generates each slide in parallel to speed up multi-slide production. Every slide follows the same style and the same generation parameters approved for the sample.
 
 ## Stage 7: Quality Review and Fixes
 

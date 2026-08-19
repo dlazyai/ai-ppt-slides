@@ -4,8 +4,22 @@ Release notes are generated from this file. Keep changelog entries in English.
 
 ## Unreleased
 
+### Features
+
+- Route every slide image through the dLazy tool API with a new `scripts/dlazy_client.py`, replacing the OpenAI-compatible and AtlasCloud providers.
+- Configure image generation with a single `DLAZY_API_KEY` via `scripts/dlazy_ppt_runtime.py config`, written to `~/.dlazy-ppt/.env`.
+- Verify the key and model availability against the account's tool manifest in `dlazy_ppt_runtime.py doctor --check-api`.
+
+### Improvements
+
+- Remove the image-backend selection step. There is one image path, so the workflow no longer asks the user to choose one and no longer falls back to an agent's built-in image tool.
+- Reject sizes, qualities, and over-long prompts locally against the tool's declared schema, so an invalid request fails before it is billed. The prompt cap is 2000 characters.
+- Default slide size is now `2048x1152`; the previous `2560x1440` default is not a size the tool accepts.
+- Rename the skill to `dlazy-ppt` and the repository to `ai-ppt-slides`; the runtime home moves from `~/.codex-ppt-skill` to `~/.dlazy-ppt`.
+
 ### Documentation
 
+- Rewrite the image configuration and generation guides around the dLazy API key, and drop the backend-selection reference.
 - Replace the redundant QA and community sections with compact documentation, Telegram, and issue support links across all README language versions, and remove the obsolete community QR code. (#92)
 - Add a Korean translation of the README (`README_ko.md`) and a language badge linking to it from `README.md` and `README_en.md`. (#90)
 - Replace README language badges with a consistent text-based language switcher across all translations. (#91)

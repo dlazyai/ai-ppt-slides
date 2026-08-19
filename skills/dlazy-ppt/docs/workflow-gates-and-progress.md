@@ -11,7 +11,6 @@ Phase order:
 1. Source reading and asset extraction
 2. Outline confirmation
 3. Visual style confirmation
-4. Image backend confirmation
 5. One sample slide approval
 6. Full slide generation
 7. QA, speaker notes finalization, and PPT assembly
@@ -27,7 +26,7 @@ Hard rules:
 
 For non-trivial decks, keep a user-visible checklist with one active step:
 
-1. Prepare source, outline, style, and backend decisions.
+1. Prepare source, outline, and style decisions.
 2. Generate and approve one sample slide.
 3. Prepare slide jobs and slide state.
 4. Dispatch slide subagents.
@@ -36,11 +35,11 @@ For non-trivial decks, keep a user-visible checklist with one active step:
 
 Completion evidence:
 
-- `Prepare source, outline, style, and backend decisions`: `outline.md` is approved and image backend is confirmed.
+- `Prepare source, outline, and style decisions`: `outline.md` and the visual style are approved.
 - `Generate and approve one sample slide`: one final `origin_image/slide_XX.png` is approved as the style reference.
 - `Prepare slide jobs and slide state`: `prompts/slide_XX.json`, `slide_jobs.json`, and `slide_run_state.json` exist.
 - `Dispatch slide subagents`: `slide_job_status.py` shows dispatchable slides and each spawned worker is recorded by `record_slide_dispatch.py`.
-- `Record generated slide results`: each worker output is recorded by `record_slide_result.py`, which copies the selected image into `origin_image/slide_XX.png` and records backend provenance.
+- `Record generated slide results`: each worker output is recorded by `record_slide_result.py`, which copies the selected image into `origin_image/slide_XX.png` and records image-tool provenance.
 - `QA, repair, notes, and PPT assembly`: every expected final image exists, QA is complete, `speech.md` is final, and `{deck_name}.pptx` exists.
 
 Do not mark a step complete just because the chat says it is complete; use real files or script-recorded state.
