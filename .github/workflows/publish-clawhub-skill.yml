@@ -215,7 +215,7 @@ jobs:
           args=(
             "skill" "publish" "${skill_path}"
             "--slug" "dlazy-ppt"
-            "--name" "dLazy PPT"
+            "--name" "PPT 生成 AI PPT Slides"
             "--version" "${version}"
             "--changelog" "$(cat "${changelog_file}")"
           )

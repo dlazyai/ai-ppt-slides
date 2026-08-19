@@ -1,5 +1,6 @@
 ---
 name: dlazy-ppt
+version: 1.0.0
 description: Generate visually unified image-based PPT/PPTX decks from articles, reports, papers, notes, or outlines, using dLazy for every slide image.
 metadata:
   openclaw:
