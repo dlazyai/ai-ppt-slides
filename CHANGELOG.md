@@ -17,6 +17,10 @@ Release notes are generated from this file. Keep changelog entries in English.
 - Default slide size is now `2048x1152`; the previous `2560x1440` default is not a size the tool accepts.
 - Rename the skill to `dlazy-ppt` and the repository to `ai-ppt-slides`; the runtime home moves from `~/.codex-ppt-skill` to `~/.dlazy-ppt`.
 
+### Fixes
+
+- Force UTF-8 console output in `assemble_ppt.py`. On a Simplified Chinese Windows the default GBK codepage cannot encode the `✓` progress marker, so assembly died with `UnicodeEncodeError` after every slide had already been generated and paid for.
+
 ### Documentation
 
 - Rewrite the image configuration and generation guides around the dLazy API key, and drop the backend-selection reference.

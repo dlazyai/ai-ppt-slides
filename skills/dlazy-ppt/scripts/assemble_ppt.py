@@ -330,7 +330,27 @@ def create_presentation(
         return False
 
 
+def _force_utf8_console() -> None:
+    """Stop a Windows console codepage from killing the run.
+
+    Progress lines here use `✓`, which GBK — the default codepage on a
+    Simplified Chinese Windows — cannot encode. Printing it raises
+    UnicodeEncodeError, and because that happens while slides are being added,
+    the deck dies after every image has already been generated and paid for.
+    Worst case the console shows mojibake; that beats losing the .pptx.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
+
 def main():
+    _force_utf8_console()
     parser = argparse.ArgumentParser(
         description='将幻灯片图片组装成 PowerPoint 演示文稿',
         formatter_class=argparse.RawDescriptionHelpFormatter,

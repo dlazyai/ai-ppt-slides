@@ -390,18 +390,6 @@ def _print_request(payload: dict) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def _write_images(images: List[bytes], outputs: List[Path], force: bool) -> None:
-    for idx, raw in enumerate(images):
-        if idx >= len(outputs):
-            break
-        out_path = outputs[idx]
-        if out_path.exists() and not force:
-            _die(f"Output already exists: {out_path} (use --force to overwrite)")
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(raw)
-        print(f"Wrote {out_path}")
-
-
 def _derive_downscale_path(path: Path, suffix: str) -> Path:
     if suffix and not suffix.startswith("-") and not suffix.startswith("_"):
         suffix = "-" + suffix
