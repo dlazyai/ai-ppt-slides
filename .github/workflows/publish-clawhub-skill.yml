@@ -15,9 +15,12 @@ on:
         description: "Optional ClawHub owner handle"
         required: false
         default: ""
-  push:
-    tags:
-      - "v*"
+
+# Manual dispatch only. Tag pushes used to publish here too, but that races the
+# release workflow on the same tag and fails outright without a CLAWHUB_TOKEN
+# secret, which this repo does not have. Publishing is done from a workstation
+# with `clawhub skill publish`; keep the dispatch entry point for when the
+# secret is configured.
 
 permissions:
   contents: read
