@@ -110,7 +110,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 
 Restart Codex after installation so the new skill is picked up.
 
-You can also download `ai-ppt-slides-v*.zip` from GitHub Releases, unzip it, place the contained `dlazy-ppt` directory at `~/.codex/skills/dlazy-ppt`, and then restart Codex.
+You can also download `dlazy-ppt-v*.zip` from GitHub Releases, unzip it, place the contained `dlazy-ppt` directory at `~/.codex/skills/dlazy-ppt`, and then restart Codex.
 
 If you are developing this repository locally, you can instead symlink the skill directory into the Codex skills directory so changes are reflected immediately:
 

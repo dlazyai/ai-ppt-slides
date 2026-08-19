@@ -21,7 +21,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 
 Restart Codex after installation so the new skill takes effect.
 
-You can also download `ai-ppt-slides-v*.zip` from [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases), extract it, place the included `dlazy-ppt` folder at `~/.codex/skills/dlazy-ppt`, and restart Codex.
+You can also download `dlazy-ppt-v*.zip` from [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases), extract it, place the included `dlazy-ppt` folder at `~/.codex/skills/dlazy-ppt`, and restart Codex.
 
 If you are developing this repository locally, you can symlink the skill directory into the Codex skills directory for real-time testing:
 
@@ -68,7 +68,7 @@ The recommended approach is to send the following sentence directly to your agen
 Please update the dlazy-ppt skill to the latest version. The repository is: https://github.com/dlazyai/ai-ppt-slides
 ```
 
-For a manual update, rerun the installation command above for the relevant agent. This overwrites the installed skill with the latest version. Alternatively, download the latest `ai-ppt-slides-v*.zip` from [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases), extract it, and replace the existing `dlazy-ppt` directory. Restart the agent after the update.
+For a manual update, rerun the installation command above for the relevant agent. This overwrites the installed skill with the latest version. Alternatively, download the latest `dlazy-ppt-v*.zip` from [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases), extract it, and replace the existing `dlazy-ppt` directory. Restart the agent after the update.
 
 Updates are safe: runtime configuration such as API keys is stored in `~/.dlazy-ppt/.env`, while your personal style library is stored in `~/.dlazy-ppt/references/`. Both are outside the skill installation directory, so updating or reinstalling the skill will not remove them. See the [Releases page](https://github.com/dlazyai/ai-ppt-slides/releases) or the repository's `CHANGELOG.md` for the changes in each version.
 

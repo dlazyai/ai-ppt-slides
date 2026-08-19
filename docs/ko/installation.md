@@ -21,7 +21,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 
 설치 후 Codex를 재시작하면 새 skill이 적용됩니다.
 
-[GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases)에서 `ai-ppt-slides-v*.zip`을 다운로드해 압축을 푼 뒤, 그 안의 `dlazy-ppt` 폴더를 `~/.codex/skills/dlazy-ppt`에 넣고 Codex를 재시작하는 방법도 있습니다.
+[GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases)에서 `dlazy-ppt-v*.zip`을 다운로드해 압축을 푼 뒤, 그 안의 `dlazy-ppt` 폴더를 `~/.codex/skills/dlazy-ppt`에 넣고 Codex를 재시작하는 방법도 있습니다.
 
 이 저장소를 로컬에서 개발하는 경우, 실시간으로 수정 사항을 테스트할 수 있도록 skill 디렉터리를 Codex skills 디렉터리에 심볼릭 링크로 연결할 수 있습니다.
 
@@ -68,7 +68,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 dlazy-ppt skill을 최신 버전으로 업데이트해 주세요. 저장소: https://github.com/dlazyai/ai-ppt-slides
 ```
 
-수동으로 업데이트할 때는 위에서 해당 agent에 맞는 설치 명령을 다시 실행하면 설치된 skill이 최신 버전으로 덮어써집니다. 또는 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases)에서 최신 `ai-ppt-slides-v*.zip`을 다운로드해 압축을 풀고 기존 `dlazy-ppt` 디렉터리를 교체할 수 있습니다. 업데이트 후 agent를 재시작하면 적용됩니다.
+수동으로 업데이트할 때는 위에서 해당 agent에 맞는 설치 명령을 다시 실행하면 설치된 skill이 최신 버전으로 덮어써집니다. 또는 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases)에서 최신 `dlazy-ppt-v*.zip`을 다운로드해 압축을 풀고 기존 `dlazy-ppt` 디렉터리를 교체할 수 있습니다. 업데이트 후 agent를 재시작하면 적용됩니다.
 
 업데이트는 안전합니다. API key 등의 런타임 설정은 `~/.dlazy-ppt/.env`에, 개인 스타일 라이브러리는 `~/.dlazy-ppt/references/`에 저장되며 모두 skill 설치 디렉터리 외부에 있습니다. 따라서 skill을 업데이트하거나 다시 설치해도 사라지지 않습니다. 각 버전의 변경 사항은 [Releases 페이지](https://github.com/dlazyai/ai-ppt-slides/releases) 또는 저장소의 `CHANGELOG.md`에서 확인할 수 있습니다.
 

@@ -110,7 +110,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 
 설치 후 새 skill이 인식되도록 Codex를 재시작하세요.
 
-또는 GitHub Releases에서 `ai-ppt-slides-v*.zip`을 다운로드해 압축을 풀고, 그 안의 `dlazy-ppt` 디렉터리를 `~/.codex/skills/dlazy-ppt`에 두고 Codex를 재시작해도 됩니다.
+또는 GitHub Releases에서 `dlazy-ppt-v*.zip`을 다운로드해 압축을 풀고, 그 안의 `dlazy-ppt` 디렉터리를 `~/.codex/skills/dlazy-ppt`에 두고 Codex를 재시작해도 됩니다.
 
 이 저장소를 로컬에서 개발 중이라면, 대신 skill 디렉터리를 Codex skills 디렉터리로 심볼릭 링크해 변경 사항이 즉시 반영되게 할 수 있습니다:
 

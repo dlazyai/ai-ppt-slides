@@ -21,7 +21,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 
 安装后重启 Codex，让新 skill 生效。
 
-也可以从 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases) 下载 `ai-ppt-slides-v*.zip`，解压后把其中的 `dlazy-ppt` 文件夹放到 `~/.codex/skills/dlazy-ppt`，然后重启 Codex。
+也可以从 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases) 下载 `dlazy-ppt-v*.zip`，解压后把其中的 `dlazy-ppt` 文件夹放到 `~/.codex/skills/dlazy-ppt`，然后重启 Codex。
 
 如果你在本地开发这个仓库，可以把 skill 目录软链接到 Codex skills 目录，方便实时调试修改：
 
@@ -68,7 +68,7 @@ npx -y skills@latest add dlazyai/ai-ppt-slides \
 请帮我更新 dlazy-ppt skill 到最新版本，仓库是：https://github.com/dlazyai/ai-ppt-slides
 ```
 
-手动更新时，重新执行上面对应 agent 的安装命令即可，会用最新版本覆盖已安装的 skill；也可以从 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases) 下载最新的 `ai-ppt-slides-v*.zip`，解压后替换原来的 `dlazy-ppt` 目录。更新完成后重启 agent 生效。
+手动更新时，重新执行上面对应 agent 的安装命令即可，会用最新版本覆盖已安装的 skill；也可以从 [GitHub Releases](https://github.com/dlazyai/ai-ppt-slides/releases) 下载最新的 `dlazy-ppt-v*.zip`，解压后替换原来的 `dlazy-ppt` 目录。更新完成后重启 agent 生效。
 
 更新是安全的：API key 等运行时配置保存在 `~/.dlazy-ppt/.env`，个人风格库保存在 `~/.dlazy-ppt/references/`，都在 skill 安装目录之外，更新或重装不会丢失。每个版本的变更内容可以查看 [Releases 页面](https://github.com/dlazyai/ai-ppt-slides/releases)或仓库的 `CHANGELOG.md`。
 
